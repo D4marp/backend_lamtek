@@ -3,8 +3,8 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Install build dependencies needed for bcrypt
-RUN apk add --no-cache python3 make g++
+# Install build dependencies needed for bcrypt and other native modules
+RUN apk add --no-cache python3 make g++ curl
 
 # Install dependencies
 COPY package*.json ./
@@ -13,10 +13,11 @@ RUN npm ci
 # Rebuild bcrypt for Alpine Linux
 RUN npm rebuild bcrypt --build-from-source
 
-# Copy source
-COPY . .
+# Copy source code
+COPY tsconfig.json ./
+COPY src ./src
 
-# Build
+# Build NestJS application
 RUN npm run build
 
 # Production stage
@@ -29,14 +30,13 @@ RUN apk add --no-cache curl
 
 # Install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm ci --only=production && npm cache clean --force
 
-# Rebuild bcrypt for production  
+# Rebuild bcrypt for production environment
 RUN npm rebuild bcrypt --build-from-source
 
-# Copy built application from builder
+# Copy only compiled application from builder (NOT source files)
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/src ./src
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
@@ -44,7 +44,8 @@ USER nodejs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+# Health check - connects to health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
   CMD curl -f http://localhost:3000/health || exit 1
 
 CMD ["node", "dist/main"]
