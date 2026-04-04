@@ -6,25 +6,33 @@ import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
   
-  // Check database connection
+  let app;
   try {
+    app = await NestFactory.create(AppModule);
+    
+    // Verify database connection (DataSource is already initialized by TypeOrmModule)
     const dataSource = app.get(DataSource);
-    if (!dataSource.isInitialized) {
-      await dataSource.initialize();
+    if (dataSource.isInitialized) {
+      const queryRunner = dataSource.createQueryRunner();
+      try {
+        await queryRunner.connect();
+        const result = await queryRunner.query('SELECT VERSION() as version');
+        const dbVersion = result[0]?.version || 'Unknown';
+        logger.log(`✅ Database connected successfully: ${dbVersion}`);
+      } finally {
+        await queryRunner.release();
+      }
+    } else {
+      logger.warn('⚠️  Database not initialized yet');
     }
-    const queryRunner = dataSource.createQueryRunner();
-    await queryRunner.connect();
-    const version = await queryRunner.query('SELECT VERSION() as version');
-    logger.log(`✅ Database connected successfully: ${version[0].version}`);
-    await queryRunner.release();
   } catch (error) {
-    logger.error(`❌ Database connection failed: ${error.message}`);
-    logger.error('Make sure your database is running and credentials in .env are correct');
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error(`❌ Application startup failed: ${errorMessage}`);
+    logger.error('Ensure MySQL is running and database credentials in .env are correct');
     process.exit(1);
   }
-  
+
   // Global prefix
   app.setGlobalPrefix('api/v1');
   
@@ -69,5 +77,7 @@ async function bootstrap() {
   logger.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
   logger.log(`🔐 Auth endpoints: POST /api/v1/auth/login, POST /api/v1/auth/register`);
 }
+
+bootstrap();
 
 bootstrap();
