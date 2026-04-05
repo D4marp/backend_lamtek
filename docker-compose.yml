@@ -108,12 +108,8 @@ services:
       dockerfile: Dockerfile
     container_name: lamtek-backend
     depends_on:
-      mysql:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      kafka:
-        condition: service_healthy
+      - mysql
+      - redis
     environment:
       # Node environment
       NODE_ENV: development
