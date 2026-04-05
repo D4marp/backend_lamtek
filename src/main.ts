@@ -70,14 +70,17 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
   
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
+  const port = parseInt(process.env.PORT || '3000', 10);
+  const host = process.env.HOST || '0.0.0.0';
+  await app.listen(port, host);
   
   logger.log(`🚀 LAM Teknik SaaS API running on: http://localhost:${port}`);
   logger.log(`📚 Swagger docs: http://localhost:${port}/api/docs`);
   logger.log(`🔐 Auth endpoints: POST /api/v1/auth/login, POST /api/v1/auth/register`);
 }
 
-bootstrap();
-
-bootstrap();
+bootstrap().catch((error) => {
+  const logger = new Logger('Bootstrap');
+  logger.error('Failed to start application:', error);
+  process.exit(1);
+});

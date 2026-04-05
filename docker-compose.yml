@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0-alpine
+    container_name: lamtek-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: lamtek_dev
+      MYSQL_USER: lamtek_user
+      MYSQL_PASSWORD: lamtek_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - lamtek-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: lamtek-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lamtek-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 10s
+      retries: 5
+
+  # Kafka for messaging
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: lamtek-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    networks:
+      - lamtek-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: lamtek-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    networks:
+      - lamtek-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:29092"]
+      timeout: 10s
+      retries: 5
+
+  # IPFS Node
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    container_name: lamtek-ipfs
+    ports:
+      - "5001:5001"
+      - "8080:8080"
+    volumes:
+      - ipfs_data:/data/ipfs
+    networks:
+      - lamtek-network
+    command:
+      - /sbin/tini
+      - --
+      - /usr/local/bin/start_ipfs
+      - daemon
+      - --apiaddr=/ip4/0.0.0.0/tcp/5001
+
+  # Hyperledger Besu (Blockchain)
+  besu:
+    image: hyperledger/besu:latest
+    container_name: lamtek-besu
+    command:
+      - --network=dev
+      - --rpc-http-enabled
+      - --rpc-http-host=0.0.0.0
+      - --rpc-http-port=8545
+      - --rpc-http-api=ETH,NET,WEB3
+      - --key-value-storage=rocksdb
+    ports:
+      - "8545:8545"
+      - "30303:30303"
+    volumes:
+      - besu_data:/data
+    networks:
+      - lamtek-network
+
+  # NestJS Backend Application
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lamtek-backend
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    environment:
+      # Node environment
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+
+      # Database
+      DATABASE_HOST: mysql
+      DATABASE_PORT: 3306
+      DATABASE_USERNAME: lamtek_user
+      DATABASE_PASSWORD: lamtek_password
+      DATABASE_NAME: lamtek_dev
+      DATABASE_SYNCHRONIZE: "false"
+      DATABASE_LOGGING: "true"
+
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      # Kafka
+      KAFKA_BROKERS: kafka:29092
+      KAFKA_CLIENT_ID: lamtek-backend-client
+
+      # IPFS
+      IPFS_API_URL: http://ipfs:5001
+
+      # Blockchain (Besu)
+      BESU_RPC_URL: http://besu:8545
+      BLOCKCHAIN_PRIVATE_KEY: 0x8f2a55949038a9610f50fb23b5883af3b4ecb3c3bb792cbcefbd1542c692be63
+
+      # JWT
+      JWT_SECRET: your-secret-key-change-this-in-production
+      JWT_EXPIRATION: 3600
+
+      # CORS
+      CORS_ORIGINS: http://localhost:3001,http://localhost:3000
+
+    ports:
+      - "3000:3000"
+    networks:
+      - lamtek-network
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    restart: unless-stopped
+
+networks:
+  lamtek-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data:
+  ipfs_data:
+  besu_data:
