@@ -55,5 +55,3 @@ WORKDIR /app
 CMD ["./scripts/docker-start.sh"]
 
 # Health check - connects to health endpoint
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
-  CMD curl -f http://localhost:3000/api/v1/health || exit 1
