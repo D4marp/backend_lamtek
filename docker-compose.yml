@@ -1,9 +1,7 @@
-version: '3.8'
-
 services:
   # MySQL Database
   mysql:
-    image: mysql:8.0-alpine
+    image: mysql:8.0
     container_name: lamtek-mysql
     environment:
       MYSQL_ROOT_PASSWORD: root_password
@@ -119,7 +117,7 @@ services:
     environment:
       # Node environment
       NODE_ENV: development
-      PORT: 3000
+      PORT: 3001
       HOST: 0.0.0.0
 
       # Database
@@ -154,7 +152,7 @@ services:
       CORS_ORIGINS: http://localhost:3001,http://localhost:3000
 
     ports:
-      - "3000:3000"
+      - "3001:3001"
     networks:
       - lamtek-network
     volumes:
