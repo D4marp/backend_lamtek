@@ -145,7 +145,7 @@ services:
       JWT_EXPIRATION: 3600
 
       # CORS
-      CORS_ORIGINS: http://localhost:3001,http://localhost:3000
+      CORS_ORIGINS: http://localhost:3001,http://localhost:3000,http://frontend_lamtek.paas.hcm-lab.id
 
     ports:
       - "3001:3001"
