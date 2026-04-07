@@ -117,11 +117,13 @@ services:
       HOST: 0.0.0.0
 
       # Database
-      DATABASE_HOST: mysql
-      DATABASE_PORT: 3306
-      DATABASE_USERNAME: lamtek_user
-      DATABASE_PASSWORD: lamtek_password
-      DATABASE_NAME: lamtek_dev
+      # Database Configuration
+      DATABASE_URL: mysql://lamtek_user:lamtek_password@mysql:3306/lamtek_dev
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USERNAME: lamtek_user
+      DB_PASSWORD: lamtek_password
+      DB_DATABASE: lamtek_dev
       DATABASE_SYNCHRONIZE: "false"
       DATABASE_LOGGING: "true"
 
