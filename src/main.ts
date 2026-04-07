@@ -44,14 +44,16 @@ async function bootstrap() {
   }));
   
   // CORS
-  const corsOrigins = process.env.CORS_ORIGINS
-    ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-    : ['http://localhost:3001'];
+  const corsOrigins = process.env.CORS_ORIGINS === '*' 
+    ? '*'
+    : (process.env.CORS_ORIGINS
+        ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+        : ['http://localhost:3001']);
   
   app.enableCors({
     origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: corsOrigins === '*' ? false : true,
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
   
