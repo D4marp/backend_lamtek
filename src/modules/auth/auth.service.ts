@@ -41,6 +41,7 @@ export class AuthService {
         ...registerDto,
         password: hashedPassword,
         role: 'PRODI',
+        nama: registerDto.name, // Sync with 'name' field for database compatibility
       });
 
       const savedUser = await this.userRepository.save(user);
