@@ -40,7 +40,7 @@ export class AuthService {
       const user = this.userRepository.create({
         ...registerDto,
         password: hashedPassword,
-        role: 'USER',
+        role: 'PRODI',
       });
 
       const savedUser = await this.userRepository.save(user);
