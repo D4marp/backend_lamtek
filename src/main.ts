@@ -54,7 +54,7 @@ async function bootstrap() {
     origin: corsOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: corsOrigins === '*' ? false : true,
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
   });
   
   // Swagger documentation
