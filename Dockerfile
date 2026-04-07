@@ -38,6 +38,10 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy only compiled application from builder (NOT source files)
 COPY --from=builder /app/dist ./dist
 
+# Copy source files for TypeORM migrations to find database.config.ts
+COPY src ./src
+COPY tsconfig.json ./
+
 # Copy startup script for database migrations
 COPY scripts/docker-start.sh ./scripts/docker-start.sh
 RUN chmod +x ./scripts/docker-start.sh
