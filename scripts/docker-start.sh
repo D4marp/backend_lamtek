@@ -22,5 +22,12 @@ while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
   fi
 done
 
+echo "🌱 Running database seeds..."
+if npm run seed 2>/dev/null; then
+  echo "✅ Database seeding completed successfully"
+else
+  echo "⚠️  Seed execution encountered issues, but continuing startup..."
+fi
+
 echo "🚀 Starting LAM Teknik SaaS API on port ${PORT:-3000}..."
 exec node dist/main
