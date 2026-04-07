@@ -52,6 +52,6 @@ EXPOSE 3000
 WORKDIR /app
 
 # Start the application with migration script
-CMD ["./scripts/docker-start.sh"]
+CMD ["sh", "-c", "npm run migration:run && npm run seed && node dist/main"]
 
 # Health check - connects to health endpoint
