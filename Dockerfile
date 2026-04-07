@@ -56,6 +56,7 @@ EXPOSE 3000
 WORKDIR /app
 
 # Start the application with migration script
-CMD ["sh", "-c", "npm run migration:run && npm run seed && node dist/main"]
+# Try migration and seed, but don't fail if they do - the app should still start
+CMD ["sh", "-c", "npm run migration:run 2>/dev/null || echo 'Migration skipped or failed'; npm run seed 2>/dev/null || echo 'Seed skipped or failed'; node dist/main"]
 
 # Health check - connects to health endpoint

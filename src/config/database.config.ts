@@ -16,6 +16,9 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_DATABASE || 'lamtek_db',
   entities: [path.join(__dirname, '..//**/*.entity{.ts,.js}')],
   migrations: [path.join(__dirname, '../database/migrations/*{.ts,.js}')],
-  synchronize: process.env.NODE_ENV !== 'production',
+  // Disable synchronize - always use migrations instead
+  // This prevents conflicts between entity decorators and actual database schema
+  synchronize: false,
+  migrationsRun: false, // Migrations run explicitly in Dockerfile CMD
   logging: process.env.NODE_ENV === 'development',
 });
