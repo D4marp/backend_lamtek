@@ -1,5 +1,5 @@
 services:
-  # MySQL Database
+  # MySQL Database with Binlog enabled for Debezium CDC
   mysql:
     image: mysql:8.0
     container_name: lamtek-mysql
@@ -8,6 +8,7 @@ services:
       MYSQL_DATABASE: lamtek_dev
       MYSQL_USER: lamtek_user
       MYSQL_PASSWORD: lamtek_password
+    command: --server-id=1 --log-bin=mysql-bin --binlog-format=ROW --binlog-row-image=FULL --default-storage-engine=InnoDB
     ports:
       - "3306:3306"
     volumes:
@@ -64,6 +65,49 @@ services:
       timeout: 10s
       retries: 5
 
+  # Kafka Connect for Debezium CDC
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect:7.5.0
+    container_name: lamtek-kafka-connect
+    depends_on:
+      - kafka
+      - mysql
+    environment:
+      CONNECT_BOOTSTRAP_SERVERS: kafka:29092
+      CONNECT_REST_ADVERTISED_HOST_NAME: kafka-connect
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: lamtek-connect-group
+      CONNECT_CONFIG_STORAGE_TOPIC: connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: connect-status
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_LOG4J_ROOT_LOGLEVEL: INFO
+      CONNECT_PLUGIN_PATH: /usr/share/java,/usr/share/confluent-hub-components
+    ports:
+      - "8083:8083"
+    volumes:
+      - kafka_connect_data:/var/lib/kafka/data
+    networks:
+      - lamtek-network
+    command: 
+      - bash
+      - -c
+      - |
+        echo "Installing Debezium connectors..."
+        confluent-hub install --no-prompt debezium/debezium-connector-mysql:latest
+        /etc/confluent/docker/run
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/"]
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
   # IPFS Node
   ipfs:
     image: ipfs/go-ipfs:latest
@@ -110,6 +154,8 @@ services:
     depends_on:
       - mysql
       - redis
+      - kafka
+      - kafka-connect
     environment:
       # Node environment
       NODE_ENV: development
@@ -167,3 +213,4 @@ volumes:
   redis_data:
   ipfs_data:
   besu_data:
+  kafka_connect_data:
