@@ -43,18 +43,39 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
   }));
   
-  // CORS
-  const corsOrigins = process.env.CORS_ORIGINS === '*' 
-    ? '*'
-    : (process.env.CORS_ORIGINS
-        ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
-        : ['http://localhost:3001']);
+  // CORS Configuration - Support wildcard and explicit origins
+  const corsOrigins = process.env.CORS_ORIGINS || '*';
+  
+  // Parse CORS origins with more flexible handling
+  let allowedOrigins: string | string[] | RegExp;
+  
+  if (corsOrigins === '*') {
+    // For wildcard, allow everything during development or when explicitly configured
+    allowedOrigins = '*';
+    logger.log(`🔐 CORS: WILDCARD (*) - Accepting all origins`);
+  } else if (corsOrigins.includes('localhost') || corsOrigins.includes('127.0.0.1')) {
+    // For development, use wildcard to avoid issues
+    logger.log(`🔐 CORS: DEVELOPMENT MODE - Accepting all origins (localhost detected)`);
+    allowedOrigins = '*';
+  } else {
+    // For production with specific domains
+    allowedOrigins = corsOrigins
+      .split(',')
+      .map(origin => origin.trim())
+      .filter(origin => origin.length > 0);
+    logger.log(`🔐 CORS Configuration:`);
+    logger.log(`   Allowed Origins: ${Array.isArray(allowedOrigins) ? allowedOrigins.join(', ') : allowedOrigins}`);
+  }
   
   app.enableCors({
-    origin: corsOrigins,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: corsOrigins === '*' ? false : true,
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id'],
+    origin: allowedOrigins,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    credentials: typeof allowedOrigins === 'string' && allowedOrigins === '*' ? false : true,
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-tenant-id', 'Accept', 'X-Requested-With'],
+    exposedHeaders: ['X-Total-Count', 'X-Page-Number', 'X-Total-Pages'],
+    preflightContinue: false,
+    optionsSuccessStatus: 200,
+    maxAge: 3600,
   });
   
   // Swagger documentation
