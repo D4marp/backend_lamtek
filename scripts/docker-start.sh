@@ -1,33 +1,71 @@
-#!/bin/sh
+#!/bin/bash
+
+# Docker Startup Script - Runs migrations and starts the API
+
 set -e
 
-echo "⏳ Waiting for database connection..."
-RETRY_COUNT=0
-MAX_RETRIES=30
+# Colors
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+RED='\033[0;31m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-  if npm run migration:run 2>/dev/null; then
-    echo "✅ Database migrations completed successfully"
+print_status() {
+  echo -e "${BLUE}[$(date +'%H:%M:%S')]${NC} $1"
+}
+
+print_success() {
+  echo -e "${GREEN}[$(date +'%H:%M:%S')] ✅ $1${NC}"
+}
+
+print_warning() {
+  echo -e "${YELLOW}[$(date +'%H:%M:%S')] ⚠️  $1${NC}"
+}
+
+# Configuration
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${DB_PORT:-3306}"
+DB_USERNAME="${DB_USERNAME:-lamtek}"
+DB_PASSWORD="${DB_PASSWORD:-lamtek123}"
+DB_DATABASE="${DB_DATABASE:-db_lamtek}"
+PORT="${PORT:-3000}"
+
+echo "============================================"
+echo "🚀 LAM Teknik API Startup"
+echo "============================================"
+echo ""
+echo "Config: $DB_USERNAME@$DB_HOST:$DB_PORT/$DB_DATABASE"
+echo ""
+
+# Wait for database
+print_status "Waiting for database..."
+RETRY=0
+
+while [ $RETRY -lt 30 ]; do
+  if npm run typeorm -- query "SELECT 1" 2>/dev/null; then
+    print_success "Database ready"
     break
   fi
-  
-  RETRY_COUNT=$((RETRY_COUNT + 1))
-  echo "⏳ Database connection attempt $RETRY_COUNT/$MAX_RETRIES..."
+  RETRY=$((RETRY + 1))
   sleep 2
-  
-  if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
-    echo "❌ Failed to connect to database after $MAX_RETRIES attempts"
-    echo "⚠️  Starting app anyway - migration may fail"
-    break
-  fi
 done
 
-echo "🌱 Running database seeds..."
-if npm run seed 2>/dev/null; then
-  echo "✅ Database seeding completed successfully"
-else
-  echo "⚠️  Seed execution encountered issues, but continuing startup..."
-fi
+echo ""
 
-echo "🚀 Starting LAM Teknik SaaS API on port ${PORT:-3000}..."
+# Run migrations
+print_status "Running migrations..."
+npm run migration:run 2>&1
+
+echo ""
+
+# Run seeds
+print_status "Seeding database..."
+npm run seed 2>&1 || print_warning "Seeds skipped"
+
+echo ""
+print_success "Ready to start API"
+echo ""
+
+# Start the application
 exec node dist/main

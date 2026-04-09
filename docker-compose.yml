@@ -193,6 +193,10 @@ services:
       JWT_EXPIRATION: 3600
 
       # CORS
+      # Set to "*" for development (wildcard) or comma-separated domains for production
+      # Examples:
+      #   CORS_ORIGINS="*" (allow all)
+      #   CORS_ORIGINS="http://localhost:3002,http://frontend.example.com" (specific domains)
       CORS_ORIGINS: "*"
 
     ports:

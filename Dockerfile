@@ -27,7 +27,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Install runtime dependencies
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl bash
 
 # Copy package files
 COPY package*.json ./
@@ -42,21 +42,23 @@ COPY --from=builder /app/dist ./dist
 COPY src ./src
 COPY tsconfig.json ./
 
-# Copy startup script for database migrations
+# Copy startup and initialization scripts
 COPY scripts/docker-start.sh ./scripts/docker-start.sh
-RUN chmod +x ./scripts/docker-start.sh
+COPY scripts/init-db.sh ./scripts/init-db.sh
+RUN chmod +x ./scripts/docker-start.sh ./scripts/init-db.sh
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
-USER nodejs
+# Create non-root user for security (commented out for now due to permission issues)
+# RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+# USER nodejs
 
 EXPOSE 3000
 
-# Set working directory for startup script
+# Set working directory
 WORKDIR /app
 
-# Start the application with migration script
-# Run migrations and seed with visible output for debugging
-CMD ["sh", "-c", "echo '⏳ Running migrations...' && npm run migration:run; echo '🌱 Running seeds...' && npm run seed; echo '🚀 Starting application...' && node dist/main"]
-
 # Health check - connects to health endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+# Run migrations and start application via startup script
+CMD ["bash", "./scripts/docker-start.sh"]
