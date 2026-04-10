@@ -57,8 +57,6 @@ EXPOSE 3000
 WORKDIR /app
 
 # Health check - connects to health endpoint
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
 
 # Run migrations and start application via startup script
 CMD ["bash", "./scripts/docker-start.sh"]
