@@ -61,11 +61,8 @@ export class AuthService {
         name: registerDto.name,
         email: registerDto.email,
         password: hashedPassword,
-        phone: registerDto.phone || null,
         role: 'PRODI',
-        institusiId: institusiId,
-        prodiId: null,
-        tenantId: institusiId, // Some systems use tenantId
+        tenantId: institusiId,
         isActive: true,
         nama: registerDto.name, // Sync with 'name' field for database compatibility
       });

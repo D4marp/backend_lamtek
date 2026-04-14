@@ -156,35 +156,41 @@ export class BlockchainService implements OnModuleInit {
     keterangan?: string;
   }): Promise<string> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized, skipping status update on blockchain');
+      return 'SKIPPED';
     }
 
-    const statusMapping: Record<string, number> = {
-      'REGISTRASI': 0,
-      'VERIFIKASI_DOKUMEN': 1,
-      'PEMBAYARAN': 2,
-      'PENAWARAN_ASESOR': 3,
-      'ASESMEN_KECUKUPAN': 4,
-      'PENGESAHAN_AK': 5,
-      'ASESMEN_LAPANGAN': 6,
-      'TANGGAPAN_AL': 7,
-      'PENGESAHAN_AL': 8,
-      'PENETAPAN_PERINGKAT': 9,
-      'SINKRONISASI_BANPT': 10,
-      'SELESAI': 11,
-    };
+    try {
+      const statusMapping: Record<string, number> = {
+        'REGISTRASI': 0,
+        'VERIFIKASI_DOKUMEN': 1,
+        'PEMBAYARAN': 2,
+        'PENAWARAN_ASESOR': 3,
+        'ASESMEN_KECUKUPAN': 4,
+        'PENGESAHAN_AK': 5,
+        'ASESMEN_LAPANGAN': 6,
+        'TANGGAPAN_AL': 7,
+        'PENGESAHAN_AL': 8,
+        'PENETAPAN_PERINGKAT': 9,
+        'SINKRONISASI_BANPT': 10,
+        'SELESAI': 11,
+      };
 
-    const tx = await this.akreditasiContract.updateStatus(
-      data.kodeAkreditasi,
-      statusMapping[data.newStatus] || 0,
-      data.ipfsHashBukti || '',
-      data.keterangan || ''
-    );
+      const tx = await this.akreditasiContract.updateStatus(
+        data.kodeAkreditasi,
+        statusMapping[data.newStatus] || 0,
+        data.ipfsHashBukti || '',
+        data.keterangan || ''
+      );
 
-    const receipt: TransactionReceipt = await tx.wait();
-    this.logger.log(`Status updated: ${receipt.hash}`);
+      const receipt: TransactionReceipt = await tx.wait();
+      this.logger.log(`Status updated: ${receipt.hash}`);
 
-    return receipt.hash;
+      return receipt.hash;
+    } catch (error) {
+      this.logger.error('Failed to update status on blockchain:', error);
+      return 'FAILED';
+    }
   }
 
   /**
@@ -197,20 +203,26 @@ export class BlockchainService implements OnModuleInit {
     tipeDokumen: string;
   }): Promise<string> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized, skipping dokumen upload to blockchain');
+      return 'SKIPPED';
     }
 
-    const tx = await this.akreditasiContract.uploadDokumen(
-      data.kodeAkreditasi,
-      data.ipfsHash,
-      data.namaDokumen,
-      data.tipeDokumen
-    );
+    try {
+      const tx = await this.akreditasiContract.uploadDokumen(
+        data.kodeAkreditasi,
+        data.ipfsHash,
+        data.namaDokumen,
+        data.tipeDokumen
+      );
 
-    const receipt: TransactionReceipt = await tx.wait();
-    this.logger.log(`Document uploaded: ${receipt.hash}`);
+      const receipt: TransactionReceipt = await tx.wait();
+      this.logger.log(`Document uploaded: ${receipt.hash}`);
 
-    return receipt.hash;
+      return receipt.hash;
+    } catch (error) {
+      this.logger.error('Failed to upload dokumen on blockchain:', error);
+      return 'FAILED';
+    }
   }
 
   /**
@@ -225,31 +237,37 @@ export class BlockchainService implements OnModuleInit {
     tanggalBerakhir: Date;
   }): Promise<string> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized, skipping peringkat on blockchain');
+      return 'SKIPPED';
     }
 
-    const peringkatMapping: Record<string, number> = {
-      'BELUM_TERAKREDITASI': 0,
-      'BAIK': 1,
-      'BAIK_SEKALI': 2,
-      'UNGGUL': 3,
-    };
+    try {
+      const peringkatMapping: Record<string, number> = {
+        'BELUM_TERAKREDITASI': 0,
+        'BAIK': 1,
+        'BAIK_SEKALI': 2,
+        'UNGGUL': 3,
+      };
 
-    const tanggalBerakhirTimestamp = Math.floor(data.tanggalBerakhir.getTime() / 1000);
+      const tanggalBerakhirTimestamp = Math.floor(data.tanggalBerakhir.getTime() / 1000);
 
-    const tx = await this.akreditasiContract.tetapkanPeringkat(
-      data.kodeAkreditasi,
-      peringkatMapping[data.peringkat] || 0,
-      data.nilai,
-      data.ipfsHashSK,
-      data.ipfsHashSertifikat,
-      tanggalBerakhirTimestamp
-    );
+      const tx = await this.akreditasiContract.tetapkanPeringkat(
+        data.kodeAkreditasi,
+        peringkatMapping[data.peringkat] || 0,
+        data.nilai,
+        data.ipfsHashSK,
+        data.ipfsHashSertifikat,
+        tanggalBerakhirTimestamp
+      );
 
-    const receipt: TransactionReceipt = await tx.wait();
-    this.logger.log(`Peringkat set: ${receipt.hash}`);
+      const receipt: TransactionReceipt = await tx.wait();
+      this.logger.log(`Peringkat set: ${receipt.hash}`);
 
-    return receipt.hash;
+      return receipt.hash;
+    } catch (error) {
+      this.logger.error('Failed to set peringkat on blockchain:', error);
+      return 'FAILED';
+    }
   }
 
   /**
@@ -257,11 +275,17 @@ export class BlockchainService implements OnModuleInit {
    */
   async getAkreditasi(kodeAkreditasi: string): Promise<any> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized - returning null for getAkreditasi');
+      return null;
     }
 
-    const data = await this.akreditasiContract.getAkreditasi(kodeAkreditasi);
-    return this.parseAkreditasiData(data);
+    try {
+      const data = await this.akreditasiContract.getAkreditasi(kodeAkreditasi);
+      return this.parseAkreditasiData(data);
+    } catch (error) {
+      this.logger.error(`Failed to get akreditasi from blockchain: ${kodeAkreditasi}`, error);
+      return null;
+    }
   }
 
   /**
@@ -269,11 +293,17 @@ export class BlockchainService implements OnModuleInit {
    */
   async getAuditLogs(kodeAkreditasi: string): Promise<any[]> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized - returning empty audit logs');
+      return [];
     }
 
-    const logs = await this.akreditasiContract.getAuditLogs(kodeAkreditasi);
-    return logs.map((log: any) => this.parseAuditLog(log));
+    try {
+      const logs = await this.akreditasiContract.getAuditLogs(kodeAkreditasi);
+      return logs.map((log: any) => this.parseAuditLog(log));
+    } catch (error) {
+      this.logger.error(`Failed to get audit logs from blockchain: ${kodeAkreditasi}`, error);
+      return [];
+    }
   }
 
   /**
@@ -281,18 +311,24 @@ export class BlockchainService implements OnModuleInit {
    */
   async getDokumen(kodeAkreditasi: string): Promise<any[]> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized - returning empty dokumen list');
+      return [];
     }
 
-    const docs = await this.akreditasiContract.getDokumen(kodeAkreditasi);
-    return docs.map((doc: any) => ({
-      ipfsHash: doc.ipfsHash,
-      namaDokumen: doc.namaDokumen,
-      tipeDokumen: doc.tipeDokumen,
-      uploadedAt: new Date(Number(doc.uploadedAt) * 1000),
-      uploadedBy: doc.uploadedBy,
-      isVerified: doc.isVerified,
-    }));
+    try {
+      const docs = await this.akreditasiContract.getDokumen(kodeAkreditasi);
+      return docs.map((doc: any) => ({
+        ipfsHash: doc.ipfsHash,
+        namaDokumen: doc.namaDokumen,
+        tipeDokumen: doc.tipeDokumen,
+        uploadedAt: new Date(Number(doc.uploadedAt) * 1000),
+        uploadedBy: doc.uploadedBy,
+        isVerified: doc.isVerified,
+      }));
+    } catch (error) {
+      this.logger.error(`Failed to get dokumen from blockchain for ${kodeAkreditasi}:`, error);
+      return [];
+    }
   }
 
   /**
@@ -300,13 +336,19 @@ export class BlockchainService implements OnModuleInit {
    */
   async registerTenant(institusiId: number, nama: string): Promise<string> {
     if (!this.akreditasiContract) {
-      throw new Error('Contract not initialized');
+      this.logger.warn('Contract not initialized, skipping tenant register on blockchain');
+      return 'SKIPPED';
     }
 
-    const tx = await this.akreditasiContract.registerTenant(institusiId, nama);
-    const receipt: TransactionReceipt = await tx.wait();
+    try {
+      const tx = await this.akreditasiContract.registerTenant(institusiId, nama);
+      const receipt: TransactionReceipt = await tx.wait();
 
-    return receipt.hash;
+      return receipt.hash;
+    } catch (error) {
+      this.logger.error('Failed to register tenant on blockchain:', error);
+      return 'FAILED';
+    }
   }
 
   /**

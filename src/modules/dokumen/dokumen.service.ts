@@ -27,7 +27,7 @@ export class DokumenService {
 
   async uploadDokumen(
     kodeAkreditasi: string,
-    file: Express.Multer.File,
+    file: any,
     tipeDokumen: TipeDokumen,
     metadata?: Record<string, any>,
   ): Promise<{

@@ -131,7 +131,7 @@ export class AkreditasiController {
   @UseInterceptors(FileInterceptor('file'))
   async uploadDokumen(
     @Param('id', ParseIntPipe) id: number,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
     @Body('tipeDokumen') tipeDokumen: string,
     // @CurrentTenant() tenantId: number,
   ) {

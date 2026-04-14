@@ -29,7 +29,7 @@ let IpfsService = IpfsService_1 = class IpfsService {
         try {
             const response = await fetch(`${this.apiUrl}/api/v0/id`, { method: 'POST' });
             if (response.ok) {
-                const data = await response.json();
+                const data = (await response.json());
                 this.logger.log(`Connected to IPFS node: ${data.ID}`);
                 this.isConnected = true;
                 return true;
@@ -71,7 +71,7 @@ let IpfsService = IpfsService_1 = class IpfsService {
             if (!response.ok) {
                 throw new Error(`IPFS upload failed: ${response.statusText}`);
             }
-            const result = await response.json();
+            const result = (await response.json());
             const ipfsHash = result.Hash;
             const sha256 = (0, crypto_1.createHash)('sha256').update(file.buffer).digest('hex');
             this.logger.log(`File uploaded to IPFS: ${ipfsHash}`);
@@ -100,7 +100,7 @@ let IpfsService = IpfsService_1 = class IpfsService {
             if (!response.ok) {
                 throw new Error(`IPFS upload failed: ${response.statusText}`);
             }
-            const result = await response.json();
+            const result = (await response.json());
             const ipfsHash = result.Hash;
             this.logger.log(`JSON uploaded to IPFS: ${ipfsHash}`);
             return {
@@ -180,7 +180,7 @@ let IpfsService = IpfsService_1 = class IpfsService {
             if (!response.ok) {
                 throw new Error(`Failed to get pinned files: ${response.statusText}`);
             }
-            const result = await response.json();
+            const result = (await response.json());
             return Object.keys(result.Keys || {});
         }
         catch (error) {
